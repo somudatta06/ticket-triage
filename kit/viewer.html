@@ -1,0 +1,215 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Traces · Ticket Triage</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,380;1,9..144,380&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=satoshi@400,500,700&display=swap" rel="stylesheet">
+<style>
+:root{--desk:#E8E6E1;--sheet:#FCFBF8;--sheet-2:#F5F3EE;--ink:#1D1C1A;--ink-2:#5E5B55;--ink-3:#97938B;--rule:rgba(29,28,26,.10);--signal:#FF5A1F;--red:#D23F2A;--green:#23885A;--violet:#7B4FD3}
+*{box-sizing:border-box}
+html{background:var(--desk);background-image:radial-gradient(rgba(28,27,25,.10) 1px,transparent 1px);background-size:22px 22px}
+body{margin:0;color:var(--ink);font:15.5px/1.55 Satoshi,ui-sans-serif,system-ui,-apple-system,sans-serif;font-variant-numeric:tabular-nums}
+main{max-width:1120px;margin:0 auto;padding:48px 24px 96px}
+.eyebrow{color:var(--ink-2);font-size:13px;margin:0 0 6px}
+h1{font:380 44px/1.05 Fraunces,Georgia,serif;font-variation-settings:"opsz" 144;letter-spacing:-.02em;margin:0 0 8px}
+h2{font:380 30px/1.1 Fraunces,Georgia,serif;font-variation-settings:"opsz" 144;letter-spacing:-.02em;margin:0 0 4px}
+h1 i,h2 i{font-style:italic}
+.lede{color:var(--ink-2);max-width:66ch;margin:0 0 36px}
+.sheet{background:var(--sheet);border:1px solid var(--rule);border-radius:14px;box-shadow:0 1px 0 rgba(255,255,255,.7) inset,0 10px 30px -18px rgba(29,28,26,.25);padding:28px;margin:0 0 28px}
+.sub{color:var(--ink-2);font-size:13px;margin:0 0 20px}
+.chart-wrap{display:grid;grid-template-columns:1fr;gap:12px}
+.axis-switch{display:flex;gap:4px;font-size:13px}
+.axis-switch button{font:inherit;border:1px solid var(--rule);background:var(--sheet-2);color:var(--ink-2);border-radius:8px;padding:5px 10px;cursor:pointer}
+.axis-switch button[aria-pressed=true]{background:var(--ink);color:var(--sheet);border-color:var(--ink)}
+svg text{font:12px Satoshi,system-ui,sans-serif;fill:var(--ink-2)}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+th{font-weight:500;color:var(--ink-2);text-align:left;padding:8px 10px;border-bottom:1px solid var(--rule)}
+td{padding:9px 10px;border-bottom:1px solid var(--rule);vertical-align:top}
+td.num,th.num{text-align:right}
+tr.run{cursor:pointer}
+tr.run:hover td{background:var(--sheet-2)}
+tr.run.on td{background:#FFF1EA}
+.pred{color:var(--ink-2);font-style:italic;max-width:28ch}
+.miss{display:grid;grid-template-columns:minmax(0,1.4fr) minmax(0,1fr);gap:20px;padding:16px 0;border-bottom:1px solid var(--rule)}
+.miss:last-child{border-bottom:0}
+.tid{font:500 12.5px "JetBrains Mono",ui-monospace,monospace;color:var(--ink-2)}
+.ticket-subj{font-weight:500;margin:2px 0}
+.ticket-body{color:var(--ink-2);font-size:13.5px;white-space:pre-wrap;max-height:7.5em;overflow:hidden}
+.fields{font-size:13.5px}
+.fields div{display:grid;grid-template-columns:100px 1fr;gap:8px;padding:3px 0}
+.fields .k{color:var(--ink-3)}
+.yours{color:var(--red)}
+.team{color:var(--ink)}
+.filters{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px;font-size:13.5px}
+.filters select,.filters input[type=search]{font:inherit;border:1px solid var(--rule);border-radius:8px;background:var(--sheet-2);padding:6px 10px;color:var(--ink)}
+.filters input[type=search]{min-width:220px}
+.call{border-bottom:1px solid var(--rule)}
+.call summary{list-style:none;display:grid;grid-template-columns:150px 110px minmax(0,1fr) 80px 110px;gap:12px;padding:10px 4px;cursor:pointer;font-size:13.5px}
+.call summary::-webkit-details-marker{display:none}
+.call summary:hover{background:var(--sheet-2)}
+.call .err{color:var(--red)}
+.call .muted{color:var(--ink-3)}
+.call pre{font:13px/1.65 "JetBrains Mono",ui-monospace,monospace;background:var(--sheet-2);border-radius:10px;padding:14px 16px;margin:6px 0 14px;white-space:pre-wrap;word-break:break-word;max-height:360px;overflow:auto}
+.call .lbl{font-size:12.5px;color:var(--ink-2);margin:10px 0 0}
+.empty{color:var(--ink-2)}
+.more{font:inherit;margin-top:14px;border:1px solid var(--rule);background:var(--sheet-2);border-radius:8px;padding:7px 14px;cursor:pointer}
+@media (max-width:760px){.miss{grid-template-columns:1fr}.call summary{grid-template-columns:1fr 1fr}h1{font-size:34px}}
+</style>
+</head>
+<body>
+<main>
+  <p class="eyebrow" id="proj">Ticket Triage</p>
+  <h1>What your router <i>did</i></h1>
+  <p class="lede">Every eval you ran and every call your code made to the model, read from this folder's <code>traces/</code>. Nothing here leaves your computer.</p>
+
+  <section class="sheet" id="runs-sheet">
+    <h2>Eval <i>runs</i></h2>
+    <p class="sub">Higher is better. Further left is faster or cheaper. Click a run to see what it got wrong.</p>
+    <div class="chart-wrap">
+      <div class="axis-switch" role="group" aria-label="Horizontal axis">
+        <button data-x="ms_p50" aria-pressed="true">Time per ticket</button>
+        <button data-x="tokens">Tokens per ticket</button>
+        <button data-x="cost_per_1k">Cost per 1,000</button>
+      </div>
+      <svg id="chart" viewBox="0 0 1000 300" role="img" aria-label="Eval runs: all four right against the chosen measure"></svg>
+    </div>
+    <table id="runs"><thead><tr>
+      <th>Run</th><th>Model</th><th>You expected</th><th class="num">Queue</th><th class="num">All four</th>
+      <th class="num">p50 ms</th><th class="num">p95 ms</th><th class="num">Tokens</th><th class="num">$ / 1k</th>
+    </tr></thead><tbody></tbody></table>
+  </section>
+
+  <section class="sheet" id="miss-sheet">
+    <h2>Got <i>wrong</i></h2>
+    <p class="sub" id="miss-sub"></p>
+    <div id="misses"></div>
+  </section>
+
+  <section class="sheet">
+    <h2>Every <i>call</i></h2>
+    <p class="sub">What your code sent and what came back, newest first.</p>
+    <div class="filters">
+      <select id="f-run"><option value="">All runs</option></select>
+      <label><input type="checkbox" id="f-err"> Errors only</label>
+      <input type="search" id="f-q" placeholder="Ticket id or text">
+    </div>
+    <div id="calls"></div>
+    <button class="more" id="more" hidden>Show more</button>
+  </section>
+</main>
+<script>
+const DATA = /*DATA*/null;
+const D = DATA || {calls: [], runs: [], preds: {}, gold: {}};
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const pct = x => x == null ? "—" : Math.round(100 * x) + "%";
+const FIELDS = ["queue", "urgency", "order_id", "wants_refund"];
+const full = D.runs.filter(r => r.full);
+let xKey = "ms_p50", picked = full.length ? full[full.length - 1].run : null;
+
+const xVal = r => xKey === "tokens" ? ((r.tokens_in_per_ticket || 0) + (r.tokens_out_per_ticket || 0)) || null : r[xKey];
+const label = r => r.backend + (r.model ? " " + r.model : "");
+const when = r => { const d = new Date(r.at); return isNaN(d) ? r.run : d.toLocaleDateString(undefined, {day: "numeric", month: "short"}) + ", " + d.toLocaleTimeString(undefined, {hour: "2-digit", minute: "2-digit"}); };
+
+function chart() {
+  const svg = $("#chart"), W = 1000, H = 300, L = 56, R = 24, T = 16, B = 40;
+  const pts = full.map(r => ({r, x: xVal(r), y: r.ref.all_four})).filter(p => p.x != null);
+  if (!pts.length) { svg.innerHTML = `<text x="${L}" y="${H/2}">No runs with this measure yet.</text>`; return; }
+  const xmax = Math.max(...pts.map(p => p.x)) * 1.12 || 1;
+  const X = v => L + (W - L - R) * v / xmax, Y = v => T + (H - T - B) * (1 - v);
+  let g = "";
+  for (const v of [0, .25, .5, .75, 1]) g += `<line x1="${L}" x2="${W - R}" y1="${Y(v)}" y2="${Y(v)}" stroke="rgba(29,28,26,.08)"/><text x="${L - 10}" y="${Y(v) + 4}" text-anchor="end">${v * 100}%</text>`;
+  const unit = {ms_p50: "ms per ticket (p50)", tokens: "tokens per ticket", cost_per_1k: "$ per 1,000 tickets at API prices"}[xKey];
+  g += `<text x="${W - R}" y="${H - 8}" text-anchor="end">${unit}</text><text x="${L}" y="${H - 8}">0</text>`;
+  const latest = {};
+  pts.forEach(p => { latest[label(p.r)] = p.r.run; });
+  pts.forEach(p => { if (p.r.run === picked) latest[label(p.r)] = p.r.run; });
+  pts.forEach(p => {
+    const on = p.r.run === picked, cx = X(p.x), cy = Y(p.y);
+    const show = latest[label(p.r)] === p.r.run, left = cx > W * 0.62;
+    g += `<g style="cursor:pointer" data-run="${esc(p.r.run)}"><title>${esc(label(p.r) + " · " + when(p.r) + " · " + pct(p.y))}</title>
+      <circle cx="${cx}" cy="${cy}" r="${on ? 7 : 5}" fill="${on ? "#FF5A1F" : "#1D1C1A"}" fill-opacity="${on ? 1 : .55}"/>
+      ${show ? `<text x="${left ? cx - 12 : cx + 12}" y="${cy + 4}" text-anchor="${left ? "end" : "start"}">${esc(label(p.r))}</text>` : ""}</g>`;
+  });
+  svg.innerHTML = g;
+  svg.querySelectorAll("g[data-run]").forEach(el => el.onclick = () => pick(el.dataset.run));
+}
+
+function runsTable() {
+  $("#runs tbody").innerHTML = full.slice().reverse().map(r => `
+    <tr class="run ${r.run === picked ? "on" : ""}" data-run="${esc(r.run)}">
+      <td>${esc(when(r))}</td><td>${esc(label(r))}</td>
+      <td class="pred">${esc(r.prediction || "")}</td>
+      <td class="num">${pct(r.ref.queue)}</td><td class="num">${pct(r.ref.all_four)}</td>
+      <td class="num">${r.ms_p50 ?? "—"}</td><td class="num">${r.ms_p95 ?? "—"}</td>
+      <td class="num">${(r.tokens_in_per_ticket || 0) + (r.tokens_out_per_ticket || 0) ? Math.round((r.tokens_in_per_ticket || 0) + (r.tokens_out_per_ticket || 0)) : "—"}</td>
+      <td class="num">${r.cost_per_1k ? r.cost_per_1k.toFixed(2) : "—"}</td>
+    </tr>`).join("") || `<tr><td colspan="9" class="empty">No full evals yet. Run: python3 insideout.py eval</td></tr>`;
+  document.querySelectorAll("tr.run").forEach(tr => tr.onclick = () => pick(tr.dataset.run));
+}
+
+function misses() {
+  const run = full.find(r => r.run === picked);
+  const P = (D.preds[picked] || {}).preds || {};
+  if (!run) { $("#miss-sub").textContent = "Run an eval to see its mistakes here."; $("#misses").innerHTML = ""; return; }
+  const rows = Object.entries(D.gold).map(([id, g]) => {
+    const p = P[id] || {};
+    const bad = FIELDS.filter(f => JSON.stringify(p[f] ?? null) !== JSON.stringify(g.label[f] ?? null));
+    return {id, g, p, bad};
+  }).filter(x => x.bad.length);
+  $("#miss-sub").textContent = `${rows.length} of ${run.n} tickets had something wrong in the run from ${when(run)} (${label(run)}).`;
+  const cap = missAll ? rows.length : 12;
+  $("#misses").innerHTML = rows.slice(0, cap).map(x => `
+    <div class="miss">
+      <div><div class="tid">${esc(x.id)}</div>
+        ${x.g.subject ? `<div class="ticket-subj">${esc(x.g.subject)}</div>` : ""}
+        <div class="ticket-body">${esc(x.g.body)}</div></div>
+      <div class="fields">${x.bad.map(f => `
+        <div><span class="k">${f.replace("_", " ")}</span><span><span class="yours">${esc(JSON.stringify(x.p[f] ?? null))}</span> → <span class="team">${esc(JSON.stringify(x.g.label[f]))}</span></span></div>`).join("")}
+      </div>
+    </div>`).join("") || `<p class="empty">Nothing wrong in this run.</p>`;
+  if (rows.length > cap) $("#misses").innerHTML += `<button class="more" id="miss-more">Show all ${rows.length}</button>`;
+  const mm = $("#miss-more"); if (mm) mm.onclick = () => { missAll = true; misses(); };
+}
+
+let shown = 60;
+function calls() {
+  const run = $("#f-run").value, errs = $("#f-err").checked, q = $("#f-q").value.trim().toLowerCase();
+  const list = D.calls.slice().reverse().filter(c =>
+    (!run || c.run === run) && (!errs || !c.ok) &&
+    (!q || [c.tag, c.prompt, c.reply].some(v => String(v || "").toLowerCase().includes(q))));
+  $("#calls").innerHTML = list.slice(0, shown).map(c => `
+    <details class="call"><summary>
+      <span class="muted">${esc((c.at || "").replace("T", " "))}</span>
+      <span>${esc(c.tag || c.stage || "")}</span>
+      <span>${esc(c.backend)}${c.model ? " · " + esc(c.model) : ""}</span>
+      <span class="${c.ok ? "" : "err"}">${c.ok ? (c.ms ?? "") + " ms" : esc(c.error)}</span>
+      <span class="muted">${c.input_tokens != null ? c.input_tokens + " → " + (c.output_tokens ?? "?") : ""}</span>
+    </summary>
+      ${c.system ? `<p class="lbl">System</p><pre>${esc(c.system)}</pre>` : ""}
+      <p class="lbl">Prompt</p><pre>${esc(c.prompt)}</pre>
+      ${c.ok ? `<p class="lbl">Reply</p><pre>${esc(c.reply)}</pre>` : `<p class="lbl err">Error</p><pre>${esc(c.message)}</pre>`}
+    </details>`).join("") || `<p class="empty">No calls match.</p>`;
+  $("#more").hidden = list.length <= shown;
+}
+
+let missAll = false;
+function pick(run) { picked = run; missAll = false; chart(); runsTable(); misses(); }
+
+document.querySelectorAll(".axis-switch button").forEach(b => b.onclick = () => {
+  xKey = b.dataset.x;
+  document.querySelectorAll(".axis-switch button").forEach(o => o.setAttribute("aria-pressed", o === b));
+  chart();
+});
+const runIds = [...new Set(D.calls.map(c => c.run).filter(Boolean))].reverse();
+$("#f-run").innerHTML += runIds.map(r => `<option>${esc(r)}</option>`).join("");
+["#f-run", "#f-err", "#f-q"].forEach(s => $(s).addEventListener("input", () => { shown = 60; calls(); }));
+$("#more").onclick = () => { shown += 60; calls(); };
+if (D.project) $("#proj").textContent = D.project;
+chart(); runsTable(); misses(); calls();
+</script>
+</body>
+</html>

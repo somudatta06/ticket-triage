@@ -1,0 +1,1 @@
+This repository is an insideout learning project. Follow the instructions in AGENTS.md at the repository root: coach the learner stage by stage, leave their notes and judgments to them, and use the model only through llm.ask().
